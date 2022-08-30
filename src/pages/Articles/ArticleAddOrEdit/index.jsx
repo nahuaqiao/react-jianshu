@@ -1,13 +1,36 @@
 import React from 'react'
 import Form from 'react-bootstrap/Form'
 import Button from 'react-bootstrap/Button'
+import { useParams } from 'react-router-dom'
+
+import { useNavRouter } from '../../../hooks/useNavRouter'
+
 import {
   editArticle,
   getArticleById,
   postArticle,
 } from '../../../apis/ArticlesApi'
 
-const ArticleAddOrEditForm = ({ isAddPattern, handleSubmit, article = {} }) => {
+import TipsModal, { useTipsModal } from '../../../components/common/TipsModal'
+
+const ArticleAddOrEditForm = ({
+  isAddPattern,
+  handleSubmit,
+  articleId = 0,
+}) => {
+  const initArticle = {
+    title: '',
+    content: '',
+  }
+
+  const [article, setArticle] = React.useState(initArticle)
+
+  React.useEffect(() => {
+    if (!isAddPattern) {
+      getArticleById(articleId).then((res) => setArticle(res.data))
+    }
+  }, [isAddPattern, articleId])
+
   return (
     <Form onSubmit={handleSubmit}>
       <Form.Group className='mb-3'>
@@ -17,7 +40,8 @@ const ArticleAddOrEditForm = ({ isAddPattern, handleSubmit, article = {} }) => {
           type='text'
           placeholder='title'
           required={isAddPattern}
-          readOnly={isAddPattern}
+          disabled={!isAddPattern}
+          defaultValue={article.title}
         />
       </Form.Group>
 
@@ -28,6 +52,7 @@ const ArticleAddOrEditForm = ({ isAddPattern, handleSubmit, article = {} }) => {
           as='textarea'
           rows={3}
           required={isAddPattern}
+          defaultValue={article.content}
         />
       </Form.Group>
 
@@ -44,35 +69,32 @@ const ArticleAddOrEditForm = ({ isAddPattern, handleSubmit, article = {} }) => {
   )
 }
 
-const ArticleAddOrEdit = ({ isAddPattern, articleId = NaN }) => {
-  const [article, setArticle] = React.useState()
-
-  React.useEffect(() => {
-    if (isAddPattern) {
-      getArticleById(articleId).then((res) => setArticle(res.data))
-    }
-  }, [isAddPattern, articleId])
+const ArticleAddOrEdit = ({ isAddPattern }) => {
+  const { articleId } = useParams()
+  const { navToArticleList } = useNavRouter()
+  const { show, content, setShow, showMessage } = useTipsModal()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     const formData = new FormData()
     formData.append('title', e.target.title.value)
     formData.append('content', e.target.content.value)
-    formData.append('cover', e.target.cover.value)
+    e.target.cover.files[0] && formData.append('cover', e.target.cover.files[0])
     try {
-      const res = isAddPattern
+      isAddPattern
         ? await postArticle(formData)
-        : await editArticle(formData)
-
-      console.log('res', res)
-      // nav to article list page.
+        : await editArticle(articleId, formData)
+      navToArticleList()()
     } catch (e) {
-      // current user don't have edit or add permission
-      console.log(e)
+      showMessage({
+        title: 'error',
+        detail: e.message,
+      })
     }
   }
   return (
     <main>
+      <TipsModal content={content} onHide={() => setShow(false)} show={show} />
       {isAddPattern ? (
         <ArticleAddOrEditForm
           isAddPattern={isAddPattern}
@@ -82,7 +104,7 @@ const ArticleAddOrEdit = ({ isAddPattern, articleId = NaN }) => {
         <ArticleAddOrEditForm
           isAddPattern={isAddPattern}
           handleSubmit={handleSubmit}
-          article={article}
+          articleId={articleId}
         />
       )}
     </main>

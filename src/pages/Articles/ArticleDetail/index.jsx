@@ -1,6 +1,8 @@
 import logo from '../../../logo512.png'
 
 import React from 'react'
+import { useParams } from 'react-router-dom'
+
 import Button from 'react-bootstrap/Button'
 import Card from 'react-bootstrap/Card'
 import ButtonGroup from 'react-bootstrap/ButtonGroup'
@@ -8,23 +10,40 @@ import ButtonToolbar from 'react-bootstrap/ButtonToolbar'
 import ListGroup from 'react-bootstrap/ListGroup'
 import Form from 'react-bootstrap/Form'
 import InputGroup from 'react-bootstrap/InputGroup'
+
+import TipsModal, { useTipsModal } from '../../../components/common/TipsModal'
 import { deleteArticle, getArticleById } from '../../../apis/ArticlesApi'
 import { postComment } from '../../../apis/CommentsApi'
 
-const ArticleCard = ({ article }) => {
+import { useNavRouter } from '../../../hooks/useNavRouter'
+import { timestamp2format } from '../../../utils/time-format'
+
+const ArticleCard = ({
+  article,
+  handleEditArticleBtnClick,
+  handleDeleteArticleBtnClick,
+}) => {
   return (
     <article>
-      <Card style={{ width: '50%', margin: '0 auto' }}>
-        <Card.Img variant='top' src={logo} />
+      <Card style={{ width: '80%', margin: '0 auto' }}>
+        <Card.Img variant='top' src={article.cover} />
         <Card.Body>
           <Card.Title>{article.title}</Card.Title>
           <Card.Text>{article.content}</Card.Text>
+          <hr />
+          <Card.Text>{`Created by: ${article.user}, when: ${timestamp2format(
+            article.created
+          )}`}</Card.Text>
           <ButtonToolbar className='justify-content-between'>
             <ButtonGroup>
-              <Button variant='primary'>Edit Article</Button>
+              <Button variant='primary' onClick={handleEditArticleBtnClick}>
+                Edit Article
+              </Button>
             </ButtonGroup>
             <ButtonGroup>
-              <Button variant='secondary'>Delete Article</Button>
+              <Button variant='secondary' onClick={handleDeleteArticleBtnClick}>
+                Delete Article
+              </Button>
             </ButtonGroup>
           </ButtonToolbar>
         </Card.Body>
@@ -33,7 +52,7 @@ const ArticleCard = ({ article }) => {
   )
 }
 
-const CommentCreateForm = ({ articleId, handleSubmit }) => {
+const CommentCreateForm = ({ handleSubmit }) => {
   return (
     <Form onSubmit={handleSubmit}>
       <InputGroup className='mb-3'>
@@ -82,12 +101,14 @@ const CommentListItem = ({ comment }) => {
   )
 }
 
-const ArticleDetail = ({ articleId }) => {
+const ArticleDetail = () => {
+  const { articleId } = useParams()
+
   const initialArticle = {
     id: -1,
     title: 'fake title',
     content: 'fake content',
-    cover: logo,
+    cover: 'logo',
     created: Date.now(),
     user: 'fake user',
     comments: [
@@ -101,55 +122,71 @@ const ArticleDetail = ({ articleId }) => {
 
   const [article, setArticle] = React.useState(initialArticle)
 
+  /**
+   * post a comment for current article
+   * @param {event obj} e
+   */
   const handleSubmit = async (e) => {
     e.preventDefault()
     const formData = new FormData()
     formData.append('content', e.target.content.value)
     try {
       const res = await postComment(articleId, formData)
-      // console.log('res', res)
+      console.log('article', article)
       setArticle((preArticle) => ({
         ...preArticle,
-        comments: preArticle.comments.unshift(res.data),
+        comments: [].concat([res.data], preArticle.comments),
       }))
-      // anywhere need to go
-    } catch {
+    } catch (e) {
       // current user don't have comment post permission
+      showMessage({
+        title: 'error',
+        detail:
+          "Anonymous user doesn't have permission to post comments for article, login first plz.",
+      })
     }
   }
 
-  const handleEditArticleBtnClick = () => {}
+  const { navToArticleEdit, navToArticleList } = useNavRouter()
+
+  const { show, content, setShow, showMessage } = useTipsModal()
 
   const handleDeleteArticleBtnClick = async () => {
-    try {
-      const res = await deleteArticle(articleId)
-      console.log('res', res)
-    } catch {
-      // current user don't have delete permission
+    if (window.confirm('delete this article?')) {
+      try {
+        await deleteArticle(articleId)
+        navToArticleList()()
+      } catch {
+        // current user dones't have delete permission
+        showMessage({
+          title: 'error',
+          detail:
+            "Current user doesn't have permission to delete this article.",
+        })
+      }
     }
   }
 
   React.useEffect(() => {
-    if (articleId) {
-      getArticleById(articleId)
-        .then((res) => {
-          setArticle(res.data)
-        })
-        .catch((reason) => console.log('reason', reason))
-    } else {
-    }
-  }, [articleId])
+    getArticleById(articleId).then((res) => {
+      setArticle(res.data)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <main>
+      <TipsModal content={content} onHide={() => setShow(false)} show={show} />
       <ArticleCard
         article={article}
-        handleEditArticleBtnClick={handleEditArticleBtnClick}
+        handleEditArticleBtnClick={navToArticleEdit(articleId)}
         handleDeleteArticleBtnClick={handleDeleteArticleBtnClick}
       />
       <hr />
       <CommentCreateForm articleId={articleId} handleSubmit={handleSubmit} />
-      <CommentList comments={article.comments} />
+      <CommentList
+        comments={article.comments.sort((a, b) => b.created - a.created)}
+      />
     </main>
   )
 }

@@ -1,14 +1,11 @@
-import { getUserIdFromToken } from './apis/Token'
 import './App.scss'
 
-// import ArticleList from './pages/Articles/ArticleList'
-import TopNavBar from './components/common/TopNavBar'
+import AppRouter from './pages/AppRouter'
 
 function App() {
   return (
     <div className='App'>
-      <TopNavBar />
-      {/* <ArticleList /> */}
+      <AppRouter />
     </div>
   )
 }

@@ -1,27 +1,26 @@
 import React from 'react'
+
 import ListGroup from 'react-bootstrap/ListGroup'
 import Badge from 'react-bootstrap/Badge'
 import Axios from '../../../apis/Axios.js'
 
+import { useNavRouter } from '../../../hooks/useNavRouter.jsx'
+import { timestamp2format } from '../../../utils/time-format.js'
+
 const ListItem = ({ article }) => {
+  const { navToArticleDetail } = useNavRouter()
   return (
     <ListGroup.Item
+      onClick={navToArticleDetail(article.id)}
+      style={{ cursor: 'pointer' }}
       as='li'
       className='d-flex justify-content-between align-items-start'>
       <div className='ms-2 me-auto'>
         <div className='fw-bold'>{article.title}</div>
         {article.content}
-        <div>{`Created by: ${article.user}Created: ${new Intl.DateTimeFormat(
-          'en-US',
-          {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          }
-        ).format(article.created * 1000)}`}</div>
+        <div>{`Created by: ${article.user}, when: ${timestamp2format(
+          article.created
+        )}`}</div>
       </div>
 
       <Badge bg='primary' pill>
@@ -35,7 +34,7 @@ const ArticleList = () => {
   const [articleList, setArticleList] = React.useState([])
   React.useEffect(() => {
     Axios('/articles/').then((res) => {
-      setArticleList(res.data)
+      setArticleList(res.data.sort((a, b) => b.created - a.created))
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

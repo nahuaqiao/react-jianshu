@@ -1,3 +1,4 @@
+import { refreshPage } from '../utils/Global'
 import Axios from './Axios'
 
 export const login = async (formData) => {
@@ -7,10 +8,18 @@ export const login = async (formData) => {
     localStorage.refresh = res.data.refresh
     return res
   } catch {
-    throw Error('login failed, check username and password.')
+    throw Error(
+      'login error, please ensure that you have filled in your username and password correctly.'
+    )
   }
 }
 
 export const postUser = async (formData) => {
   return await Axios({ url: '/users/', method: 'post', data: formData })
+}
+
+export const logout = () => {
+  localStorage.removeItem('access')
+  localStorage.removeItem('refresh')
+  refreshPage()
 }

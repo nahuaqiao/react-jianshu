@@ -1,15 +1,15 @@
 import React from 'react'
+
 import Form from 'react-bootstrap/Form'
 import Button from 'react-bootstrap/Button'
+import { login, postUser } from '../../../apis/UsersApi'
 
-import { postUser } from '../../../apis/UsersApi'
-
-import TipsModal from '../../../components/common/TipsModal'
+import TipsModal, { useTipsModal } from '../../../components/common/TipsModal'
+import { useNavRouter } from '../../../hooks/useNavRouter'
+import { refreshPage } from '../../../utils/Global'
 
 const RegisterForm = ({ handleSubmit }) => {
-  const navToLogin = () => {
-    // nav to login page.
-  }
+  const { navToLogin } = useNavRouter()
 
   return (
     <Form onSubmit={handleSubmit}>
@@ -59,7 +59,7 @@ const RegisterForm = ({ handleSubmit }) => {
         </Button>
       </Form.Group>
       <Form.Group className=''>
-        <Button onClick={navToLogin} variant='link' size='lg'>
+        <Button onClick={navToLogin()} variant='link' size='lg'>
           {`Login`}
         </Button>
       </Form.Group>
@@ -68,12 +68,8 @@ const RegisterForm = ({ handleSubmit }) => {
 }
 
 const Register = () => {
-  const initialContextState = {
-    header: 'header',
-    content: 'content',
-  }
-  const [modalShow, setModalShow] = React.useState(false)
-  const [context, setContext] = React.useState(initialContextState)
+  const { navToArticleList } = useNavRouter()
+  const { show, content, setShow, showMessage } = useTipsModal()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -81,42 +77,38 @@ const Register = () => {
     const repeatpwd = e.target.repeatpwd.value
 
     if (password !== repeatpwd) {
-      setModalShow(true)
-      setContext({
-        title: 'tips',
-        header: 'error',
-        content: 'the two passwords are different',
+      showMessage({
+        title: 'error',
+        detail: 'register failed, The two passwords ar different',
       })
       return
     }
 
-    const formData = new FormData()
-    formData.append('username', e.target.username.value)
-    formData.append('email', e.target.email.value)
-    formData.append('password', e.target.password.value)
-    const res = await postUser(formData)
-    if (res.status === 201) {
-      setContext({
-        header: 'success',
-        content: 'register succeed!',
-      })
-    } else {
-      setContext({
-        header: 'error',
-        content: 'register failed.',
+    try {
+      const formData = new FormData()
+      formData.append('username', e.target.username.value)
+      formData.append('email', e.target.email.value)
+      formData.append('password', e.target.password.value)
+      await postUser(formData)
+
+      const loginFormData = new FormData()
+      loginFormData.append('username', e.target.username.value)
+      loginFormData.append('password', e.target.password.value)
+      await login(loginFormData)
+      navToArticleList()()
+      refreshPage()
+    } catch (e) {
+      showMessage({
+        title: 'error',
+        detail: e.message,
       })
     }
-    setModalShow(true)
   }
 
   return (
     <main>
+      <TipsModal content={content} onHide={() => setShow(false)} show={show} />
       <RegisterForm handleSubmit={handleSubmit} />
-      <TipsModal
-        context={context}
-        show={modalShow}
-        onHide={() => setModalShow(false)}
-      />
     </main>
   )
 }

@@ -1,13 +1,16 @@
 import React from 'react'
 import Form from 'react-bootstrap/Form'
 import Button from 'react-bootstrap/Button'
+
+import TipsModal, { useTipsModal } from '../../../components/common/TipsModal'
+import { useNavRouter } from '../../../hooks/useNavRouter'
+
 import { login } from '../../../apis/UsersApi'
+import { refreshPage } from '../../../utils/Global'
 
 const LoginForm = ({ handleSubmit }) => {
-  const navToRegister = (e) => {
-    e.preventDefault()
-    // nav to register page.
-  }
+  const { navToRegister } = useNavRouter()
+
   return (
     <Form onSubmit={handleSubmit}>
       <Form.Group className='mb-3'>
@@ -36,7 +39,7 @@ const LoginForm = ({ handleSubmit }) => {
         </Button>
       </Form.Group>
 
-      <Button onClick={navToRegister} variant='link' size='lg'>
+      <Button onClick={navToRegister()} variant='link' size='lg'>
         {`Register`}
       </Button>
     </Form>
@@ -44,15 +47,28 @@ const LoginForm = ({ handleSubmit }) => {
 }
 
 const Login = () => {
+  const { show, content, setShow, showMessage } = useTipsModal()
+  const { navToArticleList } = useNavRouter()
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const formData = new FormData()
-    formData.append('username', e.target.username.value)
-    formData.append('password', e.target.password.value)
-    await login(formData)
+    try {
+      const formData = new FormData()
+      formData.append('username', e.target.username.value)
+      formData.append('password', e.target.password.value)
+      await login(formData)
+      navToArticleList()()
+      refreshPage()
+    } catch (e) {
+      showMessage({
+        title: 'error',
+        detail: e.message,
+      })
+    }
   }
   return (
     <main>
+      <TipsModal content={content} onHide={() => setShow(false)} show={show} />
       <LoginForm handleSubmit={handleSubmit} />
     </main>
   )

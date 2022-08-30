@@ -4,31 +4,41 @@ import Button from 'react-bootstrap/Button'
 import Container from 'react-bootstrap/Container'
 import Nav from 'react-bootstrap/Nav'
 import Navbar from 'react-bootstrap/Navbar'
+import ButtonGroup from 'react-bootstrap/ButtonGroup'
+import { logout } from '../../../apis/UsersApi'
 import { getLoggedInUserName } from '../../../apis/Token'
 
-function TopNavBar() {
+import { useNavRouter } from '../../../hooks/useNavRouter'
+
+const TopNavBar = () => {
+  const { navToLogin, navToArticlePost, navToArticleList } = useNavRouter()
+
   const [loggedIn, setLoggedIn] = React.useState({
     isLoggedIn: false,
     username: 'AnonymousUser',
   })
 
-  const navToLoginPage = () => {}
+  const checkLoggedIn = async () => {
+    try {
+      const username = await getLoggedInUserName()
+      setLoggedIn({ isLoggedIn: true, username })
+    } catch (reason) {
+      setLoggedIn({ isLoggedIn: false, username: 'AnonymousUser' })
+    }
+  }
 
   React.useEffect(() => {
-    getLoggedInUserName()
-      .then((username) => {
-        setLoggedIn({ isLoggedIn: true, username })
-      })
-      .catch((reason) => {
-        setLoggedIn({ isLoggedIn: false, username: 'AnonymousUser' })
-        console.log('reason', reason)
-      })
+    checkLoggedIn()
   }, [])
 
   return (
     <Navbar bg='light' expand='lg'>
       <Container fluid>
-        <Navbar.Brand href='#'>Home</Navbar.Brand>
+        <Navbar.Brand
+          style={{ cursor: 'pointer' }}
+          onClick={navToArticleList()}>
+          Home
+        </Navbar.Brand>
         <Navbar.Toggle aria-controls='navbarScroll' />
         <Navbar.Collapse id='navbarScroll'>
           <Nav
@@ -37,13 +47,25 @@ function TopNavBar() {
             navbarScroll></Nav>
 
           <div className='d-flex'>
-            {loggedIn.isLoggedIn ? (
-              <Button variant='outline-success' onClick={navToLoginPage}>
-                {loggedIn.username}
-              </Button>
-            ) : (
-              <Button variant='outline-success'>{'Login'}</Button>
-            )}
+            <ButtonGroup>
+              {loggedIn.isLoggedIn ? (
+                <>
+                  <Button
+                    variant='outline-success'
+                    onClick={navToArticlePost()}>
+                    Post Article
+                  </Button>
+                  <Button variant='outline-dark'>{`Welcome: ${loggedIn.username}`}</Button>
+                  <Button
+                    variant='outline-danger'
+                    onClick={logout}>{`logout`}</Button>
+                </>
+              ) : (
+                <Button variant='outline-success' onClick={navToLogin()}>
+                  {'Login'}
+                </Button>
+              )}
+            </ButtonGroup>
           </div>
         </Navbar.Collapse>
       </Container>

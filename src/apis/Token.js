@@ -12,8 +12,10 @@ const isTokenValid = async (token) => {
     })
     if (res.status === 200) {
       return true
+    } else {
+      return false
     }
-  } finally {
+  } catch {
     return false
   }
 }
@@ -24,6 +26,7 @@ const refreshAccessToken = async (refresh) => {
     method: 'post',
     data: { refresh },
   })
+  localStorage.access = accessRes.access
   return accessRes.access
 }
 
@@ -46,7 +49,7 @@ const getAccessToken = async () => {
   }
 }
 
-export const axiosWithAccessToken = async (url, method, data = {}) => {
+export const axiosWithAccessToken = async (url, method, data = null) => {
   try {
     const accessToken = await getAccessToken()
     const res = await Axios({
@@ -54,11 +57,10 @@ export const axiosWithAccessToken = async (url, method, data = {}) => {
       method,
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': 'application/multipart/form-data;',
       },
       data,
     })
-    console.log('res', res)
     return res
   } catch (e) {
     throw e

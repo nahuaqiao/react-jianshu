@@ -23,6 +23,7 @@ export const postArticle = async (formData) => {
 // need jwt token and article id
 export const editArticle = async (articleId, formData) => {
   try {
+    console.log('articleId', articleId)
     await axiosWithAccessToken(`/articles/${articleId}/`, 'patch', formData)
   } catch (e) {
     throw e
